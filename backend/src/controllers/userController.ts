@@ -1,17 +1,18 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 // This would normally come from a database
 const users: any[] = [];
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password, name } = req.body;
         
         // Check if user exists
         if (users.find(u => u.email === email)) {
-            return res.status(400).json({ message: 'User already exists' });
+            res.status(400).json({ message: 'User already exists' });
+            return;
         }
 
         // Hash password
@@ -29,24 +30,26 @@ export const registerUser = async (req: Request, res: Response) => {
         
         res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error creating user' });
+        next(error);
     }
 };
 
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password } = req.body;
         
         // Find user
         const user = users.find(u => u.email === email);
         if (!user) {
-            return res.status(400).json({ message: 'User not found' });
+            res.status(400).json({ message: 'User not found' });
+            return;
         }
 
         // Check password
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
-            return res.status(400).json({ message: 'Invalid password' });
+            res.status(400).json({ message: 'Invalid password' });
+            return;
         }
 
         // Create token
@@ -58,22 +61,23 @@ export const loginUser = async (req: Request, res: Response) => {
 
         res.json({ token });
     } catch (error) {
-        res.status(500).json({ message: 'Error logging in' });
+        next(error);
     }
 };
 
-export const getUserProfile = async (req: Request, res: Response) => {
+export const getUserProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
         // req.user is set by the auth middleware
         const user = users.find(u => u.id === (req as any).user.userId);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            res.status(404).json({ message: 'User not found' });
+            return;
         }
 
         // Don't send password
         const { password, ...userWithoutPassword } = user;
         res.json(userWithoutPassword);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching profile' });
+        next(error);
     }
 }; 
