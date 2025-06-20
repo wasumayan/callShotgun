@@ -2,21 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 import styled, { keyframes } from 'styled-components';
 
-const pulse = keyframes`
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-`;
-
 const MapContainer = styled.div`
   width: 100vw;
   height: 100vh;

@@ -2,16 +2,21 @@ import express, { Request, Response, Router, RequestHandler } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import {
     createNewTrip,
-    getUserTrips
+    getUserTrips,
+    generateTripName,
+    getSuggestedMatches
 } from '../controllers/tripController';
 
 const router: Router = express.Router();
 
 // Create a new trip
-router.post('/', createNewTrip);
+router.post('/', authenticateToken, createNewTrip);
 
 // Get all trips for the authenticated user
 router.get('/my-trips', getUserTrips);
+
+// Generate a new trip name
+router.post('/generate-name', generateTripName);
 
 const findMatches: RequestHandler = async (req, res, next) => {
     try {
@@ -47,5 +52,8 @@ router.use(authenticateToken as RequestHandler);
 router.get('/:tripId/matches', findMatches);
 router.put('/:tripId', updateTrip);
 router.delete('/:tripId', deleteTrip);
+
+router.get('/', getUserTrips);
+router.get('/matches', getSuggestedMatches);
 
 export default router; 

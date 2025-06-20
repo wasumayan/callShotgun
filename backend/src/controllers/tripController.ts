@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { Trip, createTrip, findMatchingTrips, pool } from '../models/Trip';
+import OpenAI from 'openai';
+import { getRepository } from 'typeorm';
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export const createNewTrip = async (req: Request, res: Response) => {
     try {
-        const { destination, departureDate, arrivalDate, budget, transportModes } = req.body;
+        const { destination, departureDate, arrivalDate, budget, transportModes, tripName, interests, flexibility, notes, groupSize, travelStyle } = req.body;
         const userId = (req as any).user.userId; // From auth middleware
 
         const trip = await createTrip({
@@ -12,7 +16,13 @@ export const createNewTrip = async (req: Request, res: Response) => {
             departureDate: new Date(departureDate),
             arrivalDate: new Date(arrivalDate),
             budget,
-            transportModes
+            transportModes,
+            tripName,
+            interests,
+            flexibility,
+            notes,
+            groupSize,
+            travelStyle,
         });
 
         res.status(201).json(trip);
@@ -61,13 +71,17 @@ export const getTripById = async (tripId: number): Promise<Trip | null> => {
 export const getUserTrips = async (req: Request, res: Response) => {
     try {
         const userId = (req as any).user.userId;
-        const query = 'SELECT * FROM trips WHERE user_id = $1 ORDER BY created_at DESC';
-        const result = await pool.query(query, [userId]);
-        res.json(result.rows);
-    } catch (error) {
-        console.error('Error getting user trips:', error);
-        res.status(500).json({ message: 'Error getting user trips' });
+        const tripRepository = getRepository(Trip);
+        const trips = await tripRepository.find({ where: { user: userId } });
+        res.json(trips);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch trips.' });
     }
+};
+
+export const getSuggestedMatches = async (req: Request, res: Response) => {
+    // TODO: Implement real matching logic
+    res.json([]);
 };
 
 export const updateTrip = async (req: Request, res: Response) => {
@@ -124,5 +138,26 @@ export const deleteTrip = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error deleting trip:', error);
         res.status(500).json({ message: 'Error deleting trip' });
+    }
+};
+
+export const generateTripName = async (req: Request, res: Response) => {
+    try {
+        const { destination, travelStyle, interests, groupSize, budget, notes } = req.body;
+        const prompt = `Suggest a creative, catchy trip name for a journey with these details:\nDestination: ${destination}\nTravel Style: ${travelStyle}\nInterests: ${interests}\nGroup Size: ${groupSize}\nBudget: ${budget}\nNotes: ${notes}`;
+        const completion = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo',
+            messages: [
+                { role: 'system', content: 'You are a creative travel planner.' },
+                { role: 'user', content: prompt }
+            ],
+            max_tokens: 16,
+            temperature: 0.9
+        });
+        const name = completion.choices[0].message?.content?.trim() || 'Epic Adventure';
+        res.json({ name });
+    } catch (error) {
+        console.error('Error generating trip name:', error);
+        res.status(500).json({ error: 'Failed to generate trip name' });
     }
 }; 

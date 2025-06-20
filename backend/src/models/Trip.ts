@@ -16,6 +16,12 @@ export interface Trip {
     transportModes: string[];
     createdAt: Date;
     updatedAt: Date;
+    tripName?: string;
+    interests?: string[];
+    flexibility?: string;
+    notes?: string;
+    groupSize?: number;
+    travelStyle?: string;
 }
 
 export interface UserPreferences {
